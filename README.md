@@ -159,3 +159,136 @@ WantedBy=multi-user.target
 
 
 
+# TOMCAT-SETUP ON CENTOS
+
+* First things first, you need to update the system to the latest stable status :
+```bash
+ sudo yum install epel-release
+ 
+ sudo yum update -y && sudo reboot
+
+```
+* Now we need to install java :
+```bash
+ sudo yum install java-1.8.0-openjdk.x86_64
+```
+* To see the version :
+```bash
+ java -version
+```
+* For security purposes, you need to create a dedicated non-root user "tomcat" who belongs to the "tomcat" group :
+```bash
+ sudo groupadd tomcat
+
+ sudo mkdir /opt/tomcat
+
+ sudo useradd -s /bin/nologin -g tomcat -d /opt/tomcat tomcat
+```
+* Under the "Binary Distributions" section and then the "Core" list, use the link pointing to the "tar.gz" archive to compose a wget command :
+```bash
+ cd ~
+
+wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.33/bin/apache-tomcat-8.0.33.tar.gz
+
+sudo tar -zxvf apache-tomcat-8.0.33.tar.gz -C /opt/tomcat --strip-components=1
+```
+* Before you can run Apache Tomcat, you need to setup proper permissions for several directories :
+```bash
+ cd /opt/tomcat
+
+sudo chgrp -R tomcat conf
+
+sudo chmod g+rwx conf
+
+sudo chmod g+r conf/*
+
+sudo chown -R tomcat logs/ temp/ webapps/ work/
+
+
+
+sudo chgrp -R tomcat bin
+
+sudo chgrp -R tomcat lib
+
+sudo chmod g+rwx bin
+
+sudo chmod g+r bin/*
+```
+* As a matter of convenience, you should setup a Systemd unit file for Apache Tomcat :
+```bash
+ sudo vi /etc/systemd/system/tomcat.service
+```
+* Populate the file with :
+```bash
+ [Unit]
+
+Description=Apache Tomcat Web Application Container
+
+After=syslog.target network.target
+
+
+
+[Service]
+
+Type=forking
+
+
+
+Environment=JAVA_HOME=/usr/lib/jvm/jre
+
+Environment=CATALINA_PID=/opt/tomcat/temp/tomcat.pid
+
+Environment=CATALINA_HOME=/opt/tomcat
+
+Environment=CATALINA_BASE=/opt/tomcat
+
+Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'
+
+Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom'
+
+
+
+ExecStart=/opt/tomcat/bin/startup.sh
+
+ExecStop=/bin/kill -15 $MAINPID
+
+
+
+User=tomcat
+
+Group=tomcat
+
+
+
+[Install]
+
+WantedBy=multi-user.target
+```
+* For security purposes, you should install haveged as well :
+```bash
+ sudo yum install haveged
+
+sudo systemctl start haveged.service
+
+sudo systemctl enable haveged.service
+```
+* Now, start the Apache Tomcat service and set it run on system boot :
+```bash
+ sudo systemctl start tomcat.service
+
+sudo systemctl enable tomcat.service
+```
+* Check the status of the service :
+```bash
+  sudo systemctl status tomcat
+```
+* Access Apache Tomcat Web Interface :
+```bash
+  https://publicip:8080
+```
+## Tomcat interface looks like this..
+
+![App Screenshot](https://www.how2shout.com/linux/wp-content/uploads/2022/06/Access-Tomcat-Web-interface.png)
+
+
+
